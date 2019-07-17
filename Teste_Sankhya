@@ -1,0 +1,70 @@
+CREATE OR REPLACE PROCEDURE "STP_ATUALIZAR_DTPAG_GNRE_DIN" (
+       P_CODUSU NUMBER,        -- Código do usuário logado
+       P_IDSESSAO VARCHAR2,    -- Identificador da execução. Serve para buscar informações dos parâmetros/campos da execução.
+       P_QTDLINHAS NUMBER,     -- Informa a quantidade de registros selecionados no momento da execução.
+       P_MENSAGEM OUT VARCHAR2 -- Caso seja passada uma mensagem aqui, ela será exibida como uma informação ao usuário.
+) AS
+       PARAM_DTPAG DATE;
+       FIELD_SEQ NUMBER;
+
+       P_NUFIN     NUMBER;
+BEGIN
+
+       -- Os valores informados pelo formulário de parâmetros, podem ser obtidos com as funções:
+       --     ACT_INT_PARAM
+       --     ACT_DEC_PARAM
+       --     ACT_TXT_PARAM
+       --     ACT_DTA_PARAM
+       -- Estas funções recebem 2 argumentos:
+       --     ID DA SESSÃO - Identificador da execução (Obtido através de P_IDSESSAO))
+       --     NOME DO PARAMETRO - Determina qual parametro deve se deseja obter.
+
+       PARAM_DTPAG := ACT_DTA_PARAM(P_IDSESSAO, 'DTPAG');
+
+       FOR I IN 1..P_QTDLINHAS -- Este loop permite obter o valor de campos dos registros envolvidos na execução.
+       LOOP                    -- A variável "I" representa o registro corrente.
+           -- Para obter o valor dos campos utilize uma das seguintes funções:
+           --     ACT_INT_FIELD (Retorna o valor de um campo tipo NUMÉRICO INTEIRO))
+           --     ACT_DEC_FIELD (Retorna o valor de um campo tipo NUMÉRICO DECIMAL))
+           --     ACT_TXT_FIELD (Retorna o valor de um campo tipo TEXTO),
+           --     ACT_DTA_FIELD (Retorna o valor de um campo tipo DATA)
+           -- Estas funções recebem 3 argumentos:
+           --     ID DA SESSÃO - Identificador da execução (Obtido através do parâmetro P_IDSESSAO))
+           --     NÚMERO DA LINHA - Relativo a qual linha selecionada.
+           --     NOME DO CAMPO - Determina qual campo deve ser obtido.
+           FIELD_SEQ := ACT_INT_FIELD(P_IDSESSAO, I, 'SEQ');
+
+
+
+      SELECT NVL(NUFIN,0)
+             INTO P_NUFIN
+                  FROM AD_GNRE
+                       WHERE SEQ = FIELD_SEQ;
+
+    /*
+      IF P_NUFIN > 0 THEN
+          RAISE_APPLICATION_ERROR(-20101,FC_FORMATAHTML('NÃO PODE ATUALIZAR DATA DE PAGAMENTO ',
+                                                          'JÁ FOI REALIZADO O RETORNO FINANCEIRO DESTE DOCUMENTO ' || P_NUFIN,
+                                                          'NÃO É POSSÍVEL ALTERAR ESTA GNRE'));
+      END IF;*/
+
+            IF P_NUFIN = 0 THEN
+
+              -- RAISE_APPLICATION_ERROR(-20101, 'TESTE: ' || '20' || SUBSTR(PARAM_DTPAG,7,2 ) || '-' || SUBSTR(PARAM_DTPAG,4,2 ) || '-' || SUBSTR(PARAM_DTPAG,1,2 ) );
+
+               UPDATE AD_GNRE AD
+                      SET AD.DATAVENCIMENTO = '20' || SUBSTR(PARAM_DTPAG,7,2 ) || '-' || SUBSTR(PARAM_DTPAG,4,2 ) || '-' || SUBSTR(PARAM_DTPAG,1,2 ),
+                      AD.DATAPAGAMENTO = '20' || SUBSTR(PARAM_DTPAG,7,2 ) || '-' || SUBSTR(PARAM_DTPAG,4,2 ) || '-' || SUBSTR(PARAM_DTPAG,1,2 ),
+                     -- AD.DATAPAGAMENTOFILTRO = '20' || SUBSTR(PARAM_DTPAG,7,2 ) || '-' || SUBSTR(PARAM_DTPAG,4,2 ) || '-' || SUBSTR(PARAM_DTPAG,1,2 ),
+                      NROLOTE = '',
+                      GERADO = ''
+                          WHERE SEQ = FIELD_SEQ;
+
+            END IF;
+
+-- <ESCREVA SEU CÓDIGO AQUI (SERÁ EXECUTADO PARA CADA REGISTRO SELECIONADO)> --
+       END LOOP;
+
+-- <ESCREVA SEU CÓDIGO DE FINALIZAÇÃO AQUI> --
+
+END;
